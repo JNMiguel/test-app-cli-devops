@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - TRIVY_VERSION=0.44.1
+      - rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.rpm
+    finally:
+      - echo This always runs even if the login command fails   
+
+  pre_build:
+    commands:
+      - echo on `date`
+      - TAG=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION} | cut -c 1-7)
+      - echo Building the Docker image...
+      - IMAGE="trivy:$TAG"
+      - docker build -t $IMAGE ./app/client/
+  build:
+    commands:
+      - trivy image --format json --output vuls-results.json --exit-code 0 --severity HIGH,MEDIUM,LOW $IMAGE || true
+      - trivy image --format json --output vuls-results.json --exit-code 1 --severity CRITICAL $IMAGE || true
+  post_build:
+    commands:
+      - echo trivy scan completed on `date`
+      - wget --quiet https://roxsross-linktree.s3.amazonaws.com/trivy_vulnerability.py
+      - python trivy_vulnerability.py vuls-results.json
+
+artifacts:
+  files: vuls-results.json
