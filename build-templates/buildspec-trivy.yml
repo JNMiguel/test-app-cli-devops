@@ -24,6 +24,8 @@ phases:
       - echo trivy scan completed on `date`
       - echo MN wget --quiet https://roxsross-linktree.s3.amazonaws.com/trivy_vulnerability.py
       - pwd
+      - aws s3 cp s3://mn-infra/templates/trivy_vulnerability.py .
+      - ls -lrt
       - python trivy_vulnerability.py vuls-results.json
 
 artifacts:
